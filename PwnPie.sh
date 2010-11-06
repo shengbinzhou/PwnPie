@@ -5,6 +5,7 @@
 ### Licensed under CC BY-NC-SA 3.0 Unported ###
 ###############################################
 
+gad="go aes dec"
 olddir="$PWD"
 tmp=`mktemp -d -t kbag`
 cd "$tmp"
@@ -28,8 +29,9 @@ exit 1
 }
 usage()
 {
+#-k : Skip generation of vfdecrypt key. <= disabled.
 cat << USAGE
-usage: `basename $0` [-x <xpwntool>] [-i <irecovery>] [-s] [-p] [-n] [-h] <greenpois0n.app> <iDevice1,1_1337_Restore.ipsw>
+usage: `basename $0` [-x <xpwntool>] [-i <irecovery>] [-s] [-p] [-n] [-h] [-t] <greenpois0n.app> <iDevice1,1_1337_Restore.ipsw>
  
 -s : Skip greenpois0n. This is useful for debug. You can use this one time for every reboot to avoid crashes. Optional.
  
@@ -42,6 +44,10 @@ usage: `basename $0` [-x <xpwntool>] [-i <irecovery>] [-s] [-p] [-n] [-h] <green
 -n : Do not decrypt files in your iPSW. More faster. Useful if you want to get only keys. Optional.
  
 -h : Print this message. Optional.
+ 
+-t : Create a theiphonewiki template.
+
+
  
 <greenpois0n.app> :  Just drag and drop greenpois0n.app.
  
@@ -96,7 +102,7 @@ else
 cont=2
 fi
 
-
+VFD=1
 while [ $# -gt $cont ]; do
 :
 case $1 in
@@ -105,6 +111,8 @@ case $1 in
 -s) GP=1; shift ;; 
 -p) GET=1; shift ;; 
 -n) DECRYPT=1; shift 1 ;; 
+-t) IPHW=1; shift 1 ;; 
+#-k) VFD=1; shift 1 ;; 
 -h) usage; exit ;; 
 *) die "Invalid option $1"; exit 1;;
  esac
@@ -181,10 +189,20 @@ ls > ../list
 mv ../list ./
 info "Retriving KBAGs"
 for i in $( cat list ); do
+		
+		
         kabg "$i" &>/dev/null
+		if [[ "$kbag" == "" ]]; then
+		read -p "[-] Can't get $i's kbag. Write it here: " kbag
+		fi
+		if [[ "$kbag" == "" ]]; then
+		die "Fail."
+		fi
 		#print $i $kbag
-		print "go aes dec "$kbag >> bscr
+		print "$gad "$kbag >> bscr
 		print "// $i:" >>names
+		
+		
 done
 kline=`wc -l < bscr | awk '{print $1}'`
 pline=`wc -l < list | awk '{print $1}'`
@@ -217,7 +235,35 @@ perl -pi -e 's/-iv/IV:/g' out
 perl -pi -e 's/-k/
 Key:/g'  out
 
+### GENPASS
+if [ $GP ]; then
+unzip "$ipsw"  "Restore.plist" &>/dev/null
+info "Downloading GenPass"
+curl http://gluepie.tk/genpass -o genpass 2>/dev/null
+echo "Downloaded"
+chmod +x genpass
+PFRM=`defaults read "$PWD/Restore" DeviceMap | grep -i "Platform" | tr -d ' ' | tr -d '"' | tr -d ";"`
+PLATFORM="${PFRM##*=}"
+#echo $PLATFORM
+MDSK=`defaults read "$PWD/Restore" SystemRestoreImages | grep -i "dmg" | tr -d ' ' | tr -d '"' | tr -d ";"`
+ROOTFS="${MDSK##*=}"
+#echo $ROOTFS
+RDSK=`defaults read "$PWD/Restore" RestoreRamDisks | grep dmg | head -1 | tr -d ' ' | tr -d '"' | tr -d ";"`
+RAMDISK="${RDSK##*=}"
+#echo $RAMDISK
+KIRL=`cat names | grep -n "$RAMDISK"`
+KLINE=`print ${KIRL:0:2} | tr -d ':'`
+KWIV=`sed -n "${KLINE}p" keys`
+"$xpwntool" "$RAMDISK" rdisk.dmg $KWIV &>/dev/null
+info "Extracting RootFS in order to get his vfdecrypt key. This will take some time."
+unzip "$ipsw"  "$ROOTFS" &>/dev/null
+KIRL=`./genpass $PLATFORM ./rdisk.dmg $ROOTFS`
+echo "Found VFDecrypt key:" ${KIRL##"vfdecrypt key: "}
+VFKEY=${KIRL##"vfdecrypt key: "}
 #cat tmp out > out
+print "//$ROOTFS:" >> out
+print "VFDecrypt Key: $VFKEY" >> out
+fi
 print >> out
 print "Got them via PwnPie, (c)qwertyoruiop, 2010. follow @0wnTeam on twitter." >>out
 mv out "$olddir/$(basename $ipsw)_keys.txt" 
@@ -233,19 +279,71 @@ line1=`sed -n "${counter}p" list`
 	if [[ "$line1" == "" ]]; then echo "Fail. Some keys are missing."; break; fi
 if [[ "$line2" == "" ]]; then echo "Fail. Some keys are missing."; break; fi
 	namewoext=`print $line1 | sed 's/(.*)..*/1/'`
+	#echo $namewoext
 	ext=`print $line1 |awk -F . '{print $NF}'`
 	newname="$namewoext.dec.$ext"
-	echo "$xpwntool" "$line1" "$newname" $line2
-	"$xpwntool" "$line1" "$newname" $line2
-	mv "$newname" "$olddir/$(basename $ipsw)_decrypted/$newname"
+	"$xpwntool" "$line1" "$newname" $line2 &>/dev/null
+	mv "$newname" "$olddir/$(basename $ipsw)_decrypted/$newname" &>/dev/null || ( print "[-] Cannot decrypt $line1"; let counter=counter+1; break )
 	
 	echo "Decrypted $line1"
 	let counter=counter+1
 done
-echo "$PWD"
+if [ $GP ]; then
+info "Downloading vfdecrypt and ecrypting rootfs. This will take some time."
+curl http://gluepie.tk/vfdecrypt -o vfdecrypt 2>/dev/null
+echo "Downloaded"
+chmod +x genpass
+echo Decrypting...
+chmod +x vfdecrypt
+./vfdecrypt -i "$ROOTFS" -k "$VFKEY" -o "$olddir/$(basename $ipsw)_decrypted/$ROOTFS.decrypted.dmg" &>/dev/null 
+echo Decrypted $ROOTFS.
+fi
 fi
 open "$olddir/$(basename $ipsw)_keys.txt"
 fi
+#echo $PWD
+if [ $IPHW ]; then
+
+if [ $GP ]; then
+cat > thiw << EoF
+== Decryption Keys ==
+=== Root Filesystem ===
+*'''[[VFDecrypt Keys|VFDecrypt]] Key''': $VFKEY
+
+EoF
+else
+cat > thiw << EoF
+== Decryption Keys ==
+=== Root Filesystem ===
+*'''[[VFDecrypt Keys|VFDecrypt]] Key''': $VFKEY
+
+EoF
+fi
+pline=`wc -l < list | awk '{print $1}'`
+counter=1
+while [[ ! "$pline" == "$counter" ]]
+do
+line2=`sed -n "${counter}p" keys`
+line1=`sed -n "${counter}p" list`
+print >> thiw
+print "=== $line1 ===" >> thiw
+print "$line2">crap
+read crap iv crapp key < crap
+cat >> thiw << oEfP
+* '''IV''': $iv
+* '''Key''': $key
+oEfP
+ 
+	let counter=counter+1
+done
+rm -rf crap
+
+fi
+
+mv thiw "$olddir/$(basename $ipsw)_keys_theiphonewiki.txt"
+open "$olddir/$(basename $ipsw)_keys_theiphonewiki.txt"
+#fi
 rm -rf "$tmp"
 trap ":" EXIT
 echo "Done :)"
+
