@@ -102,7 +102,7 @@ else
 cont=2
 fi
 
-VFD=1
+VFD=
 while [ $# -gt $cont ]; do
 :
 case $1 in
