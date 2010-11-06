@@ -101,7 +101,7 @@ cont=1
 else
 cont=2
 fi
-
+VFD=
 while [ $# -gt $cont ]; do
 :
 case $1 in
@@ -303,7 +303,7 @@ fi
 #echo $PWD
 if [ $IPHW ]; then
 
-if [ $GP ]; then
+if [ $VFD ]; then
 cat > thiw << EoF
 == Decryption Keys ==
 === Root Filesystem ===
@@ -337,10 +337,10 @@ oEfP
 done
 rm -rf crap
 
-fi
-
 mv thiw "$olddir/$(basename $ipsw)_keys_theiphonewiki.txt"
 open "$olddir/$(basename $ipsw)_keys_theiphonewiki.txt"
+fi
+
 #fi
 rm -rf "$tmp"
 trap ":" EXIT
