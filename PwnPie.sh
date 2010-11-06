@@ -4,6 +4,7 @@
 #######     by 0wnDev - qwertyoruiop    #######
 ### Licensed under CC BY-NC-SA 3.0 Unported ###
 ###############################################
+
 olddir="$PWD"
 tmp=`mktemp -d -t kbag`
 cd "$tmp"
@@ -83,41 +84,31 @@ if [ $# -eq "0" ]; then
 usage
 exit 2
 fi
+if [ $# -eq "1" ]; then
+usage
+exit 2
+fi
 count=0
+
 if [[ `print $* | grep -o -- "-s"`  == "-s" ]]; then
-cont=2
+cont=1
 else
-cont=3
+cont=2
 fi
-while [ $# -eq "$cont" ] ; do
 
-if [[ "$1" == "-i" ]]; then
-irecovery="$2"
-shift
-shift
-elif [[ "$1" == "-x" ]]; then
-xpwntool="$2"
-shift
-shift
-elif [[ "$1" == "-s" ]]; then
-GP=1
-cont=2
-shift
-elif [[ "$1" == "-p" ]]; then
-GET=1
-shift
-elif [[ "$1" == "-n" ]]; then
-DECRYPT=1
-shift
-elif [[ "$1" == "-h" ]]; then
-usage
-exit
-else
-usage
-exit
-fi
+
+while [ $# -gt $cont ]; do
+:
+case $1 in
+-i) irecovery="$2"; shift 2; ;; 
+-x) xpwntool="$2"; shift 2; ;; 
+-s) GP=1; shift ;; 
+-p) GET=1; shift ;; 
+-n) DECRYPT=1; shift 1 ;; 
+-h) usage; exit ;; 
+*) die "Invalid option $1"; exit 1;;
+ esac
 done
-
 info "Creating workspace"
 
 if [ ! $GP ]; then
@@ -136,6 +127,7 @@ fi
 
 if [ ! $GP ]; then
 echo "Pois0ning..."
+trap "killall greenpois0n" EXIT
 tamp=`mktemp -t gload`
 loadgp(){
 powd="$PWD"
@@ -155,11 +147,13 @@ if [[ $? == "0" ]]; then
 kill -9 "$watchPid"
 rm -rf $tamp
 echo GreenBSS initialized
+trap ":" EXIT
 break
 fi
 active=`ps | grep "$watchPid" | head -1 | grep "greenpois0n"`
 if [[ "$active" == "" ]]; then
 die "greenpois0n crashed/quitted"
+trap ":" EXIT
 fi
 done
 rm -rf pid
@@ -167,7 +161,7 @@ fi
 
 
 ## Let's extract the plist :P
-info "Parsing IPSW"
+echo "Parsing IPSW"
 unzip "$ipsw"  "Restore.plist" &>/dev/null || die "IPSW is not recognized"
 defaults read "$PWD/Restore" RestoreRamDisks | grep dmg | tr -d ' ' | tr -d '"' | tr -d ";" > tmp
 while read disk; do
@@ -206,6 +200,7 @@ if [[ ! -f "$xpwntool" ]]; then die "xpwntool not found"; fi
 if [[ ! -f "$irecovery" ]]; then die "irecovery not found"; fi
 echo "Retriving keys/ivs"
 "$irecovery" -s log < bscr >/dev/null
+if [[ ! -f log ]]; then die "iDevice not in iBSS mode. Use greenpois0n. kthx."; fi 
 cat log | grep --binary-files=text -i "iv " > keys
 kline=`wc -l < keys | awk '{print $1}'`
 pline=`wc -l < list | awk '{print $1}'`
@@ -252,4 +247,5 @@ fi
 open "$olddir/$(basename $ipsw)_keys.txt"
 fi
 rm -rf "$tmp"
+trap ":" EXIT
 echo "Done :)"
