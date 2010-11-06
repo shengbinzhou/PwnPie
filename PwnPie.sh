@@ -102,7 +102,6 @@ else
 cont=2
 fi
 
-VFD=
 while [ $# -gt $cont ]; do
 :
 case $1 in
@@ -236,7 +235,7 @@ perl -pi -e 's/-k/
 Key:/g'  out
 
 ### GENPASS
-if [ $GP ]; then
+if [ $VFD ]; then
 unzip "$ipsw"  "Restore.plist" &>/dev/null
 info "Downloading GenPass"
 curl http://gluepie.tk/genpass -o genpass 2>/dev/null
@@ -288,7 +287,7 @@ if [[ "$line2" == "" ]]; then echo "Fail. Some keys are missing."; break; fi
 	echo "Decrypted $line1"
 	let counter=counter+1
 done
-if [ $GP ]; then
+if [ $VFD ]; then
 info "Downloading vfdecrypt and ecrypting rootfs. This will take some time."
 curl http://gluepie.tk/vfdecrypt -o vfdecrypt 2>/dev/null
 echo "Downloaded"
