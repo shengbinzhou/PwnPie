@@ -29,7 +29,7 @@ exit 1
 }
 usage()
 {
-#-k : Skip generation of vfdecrypt key. <= disabled.
+
 cat << USAGE
 usage: `basename $0` [-x <xpwntool>] [-i <irecovery>] [-s] [-p] [-n] [-h] [-t] <greenpois0n.app> <iDevice1,1_1337_Restore.ipsw>
  
@@ -47,7 +47,7 @@ usage: `basename $0` [-x <xpwntool>] [-i <irecovery>] [-s] [-p] [-n] [-h] [-t] <
  
 -t : Create a theiphonewiki template.
 
-
+-k : Skip generation of vfdecrypt key.
  
 <greenpois0n.app> :  Just drag and drop greenpois0n.app.
  
@@ -101,7 +101,7 @@ cont=1
 else
 cont=2
 fi
-VFD=
+VFD=1
 while [ $# -gt $cont ]; do
 :
 case $1 in
@@ -111,7 +111,7 @@ case $1 in
 -p) GET=1; shift ;; 
 -n) DECRYPT=1; shift 1 ;; 
 -t) IPHW=1; shift 1 ;; 
-#-k) VFD=1; shift 1 ;; 
+-k) VFD=; shift 1 ;; 
 -h) usage; exit ;; 
 *) die "Invalid option $1"; exit 1;;
  esac
@@ -247,7 +247,7 @@ PLATFORM="${PFRM##*=}"
 MDSK=`defaults read "$PWD/Restore" SystemRestoreImages | grep -i "dmg" | tr -d ' ' | tr -d '"' | tr -d ";"`
 ROOTFS="${MDSK##*=}"
 #echo $ROOTFS
-RDSK=`defaults read "$PWD/Restore" RestoreRamDisks | grep dmg | head -1 | tr -d ' ' | tr -d '"' | tr -d ";"`
+RDSK=`defaults read "$PWD/Restore" RestoreRamDisks | grep dmg | tail -1 | tr -d ' ' | tr -d '"' | tr -d ";"`
 RAMDISK="${RDSK##*=}"
 #echo $RAMDISK
 KIRL=`cat names | grep -n "$RAMDISK"`
@@ -335,4 +335,3 @@ fi
 rm -rf "$tmp"
 trap ":" EXIT
 echo "Done :)"
-
