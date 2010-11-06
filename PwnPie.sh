@@ -302,22 +302,12 @@ open "$olddir/$(basename $ipsw)_keys.txt"
 fi
 #echo $PWD
 if [ $IPHW ]; then
-
-if [ $VFD ]; then
 cat > thiw << EoF
 == Decryption Keys ==
 === Root Filesystem ===
 *'''[[VFDecrypt Keys|VFDecrypt]] Key''': $VFKEY
 
 EoF
-else
-cat > thiw << EoF
-== Decryption Keys ==
-=== Root Filesystem ===
-*'''[[VFDecrypt Keys|VFDecrypt]] Key''': $VFKEY
-
-EoF
-fi
 pline=`wc -l < list | awk '{print $1}'`
 counter=1
 while [[ ! "$pline" == "$counter" ]]
