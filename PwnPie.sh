@@ -8,6 +8,68 @@
 gad="go aes dec"
 #olddir="$PWD" Some Cool Things commit added -o command and now we use $ipsw's dirname as output directory. Override this via -o flag.
 
+## PLISTLib - Defaults for Linux.
+function defaults(){
+touch plut
+shift; #defaults read
+if [[ "$2" == "RestoreKernelCaches" ]]; then ## KERNEL
+cat > plut << OZOD
+#!/usr/bin/env python
+
+from plistlib import *
+import sys
+pl = readPlist(sys.argv[1])
+## KernelCache
+print(pl["RestoreKernelCaches"]["Release"])
+OZOD
+
+elif [[ "$2" == "DeviceMap" ]]; then ## PLATFORM
+cat > plut << OZOD
+#!/usr/bin/env python
+
+from plistlib import *
+import sys
+pl = readPlist(sys.argv[1])
+## KernelCache
+print(pl["DeviceMap"][0]["Platform"])
+OZOD
+elif [[ "$2" == "RestoreRamDisks" ]]; then ## RAMDISKS
+cat > plut << OZOD
+#!/usr/bin/env python
+
+from plistlib import *
+import sys
+pl = readPlist(sys.argv[1])
+## KernelCache
+ramdisks=pl["RestoreRamDisks"]
+
+for lst in ramdisks.values():
+#lst=a ramdisk
+	print(lst)
+OZOD
+elif [[ "$2" == "SystemRestoreImages" ]]; then ## RAMDISKS
+cat > plut << OZOD
+#!/usr/bin/env python
+
+from plistlib import *
+import sys
+pl = readPlist(sys.argv[1])
+
+#rootfs
+for lst in pl["SystemRestoreImages"].values():
+#lst=rootfs
+	print(lst)
+
+OZOD
+fi
+#platform
+
+chmod +x plut
+./plut "$1.plist" "$2" "$3"
+rm -rf plut
+}
+
+
 odpw="$PWD"
 tmp=`mktemp -d -t kbag`
 cd "$tmp"
@@ -197,15 +259,14 @@ if [ $SINGLE ]; then
 ## Let's extract the plist :P
 echo "Parsing IPSW"
 unzip "$ipsw"  "Restore.plist" &>/dev/null || die "IPSW is not recognized"
-defaults read "$PWD/Restore" RestoreRamDisks | grep dmg | tr -d ' ' | tr -d '"' | tr -d ";" > tmp
+defaults read "$PWD/Restore" RestoreRamDisks  > tmp
 while read disk; do
-unzip "$ipsw" "${disk##*=}" &>/dev/null
+unzip "$ipsw" "${disk}" &>/dev/null
 done < tmp
 unzip "$ipsw" "Firmware/*" &>/dev/null
-defaults read "$PWD/Restore" KernelCachesByTarget | grep kernelcache | head -1 | tr -d ' ' | tr -d '"' | tr -d ";" > tmp
-while read disk; do
-unzip "$ipsw" "${disk##*=}" &>/dev/null
-done < tmp
+
+unzip "$ipsw" `defaults read "$PWD/Restore" KernelCachesByTarget`
+
 rm -rf tmp
 rm -rf Restore.plist
 find . -maxdepth 5 -name "*.img3" -exec mv {} ./ \;
@@ -297,14 +358,15 @@ info "Downloading GenPass"
 curl http://gluepie.tk/genpass -o genpass 2>/dev/null
 echo "Downloaded"
 chmod +x genpass
-PFRM=`defaults read "$PWD/Restore" DeviceMap | grep -i "Platform" | tr -d ' ' | tr -d '"' | tr -d ";"`
-PLATFORM="${PFRM##*=}"
+PLATFORM=`defaults read "$PWD/Restore" DeviceMap | head -1`
+#PLATFORM="${PFRM##*=}"
 #echo $PLATFORM
-MDSK=`defaults read "$PWD/Restore" SystemRestoreImages | grep -i "dmg" | tr -d ' ' | tr -d '"' | tr -d ";"`
-ROOTFS="${MDSK##*=}"
+ROOTFS=`defaults read "$PWD/Restore" SystemRestoreImages | head -1`
+#ROOTFS="${MDSK##*=}"
 #echo $ROOTFS
-RDSK=`defaults read "$PWD/Restore" RestoreRamDisks | grep dmg | tail -1 | tr -d ' ' | tr -d '"' | tr -d ";"`
-RAMDISK="${RDSK##*=}"
+RAMDISK=`defaults read "$PWD/Restore" RestoreRamDisks | tail -1`
+#RAMDISK="${RDSK##*=}"
+echo $RAMDISK $ROOTFS $PLATFORM
 #echo $RAMDISK
 KIRL=`cat names | grep -n "$RAMDISK"`
 KLINE=`print ${KIRL:0:2} | tr -d ':'`
@@ -327,7 +389,6 @@ pline=`wc -l < keys | awk '{print $1}'`
 counter=1
 if [[ -x "$olddir/$(basename $ipsw)_decrypted" ]]; then rm -rf "$olddir/$(basename $ipsw)_decrypted"; fi
 mkdir "$olddir/$(basename $ipsw)_decrypted"
-echo PlOx
 while [[ ! "$pline" == "$counter" ]]
 do
 line2=`sed -n "${counter}p" keys`
