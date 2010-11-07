@@ -6,13 +6,16 @@
 ###############################################
 
 gad="go aes dec"
-olddir="$PWD"
+#olddir="$PWD" Some Cool Things commit added -o command and now we use $ipsw's dirname as output directory. Override this via -o flag.
+
+odpw="$PWD"
 tmp=`mktemp -d -t kbag`
 cd "$tmp"
 echo=`which echo`
 irecovery=`which irecovery`
 xpwntool=`which xpwntool`
 if [[ $irecovery == "" ]]; then irecovery=""; fi
+
 echo(){
 "$echo" "[+] $*"
 }
@@ -31,13 +34,19 @@ usage()
 {
 
 cat << USAGE
-usage: `basename $0` [-x <xpwntool>] [-i <irecovery>] [-s] [-p] [-n] [-h] [-t] <greenpois0n.app> <iDevice1,1_1337_Restore.ipsw>
+usage: `basename $0` [-x <xpwntool>] [-w <img3-file>] [-i <irecovery>] [-o <path>] [-s] [-p] [-n] [-h] [-t] <greenpois0n.app> <iDevice1,1_1337_Restore.ipsw>
  
 -s : Skip greenpois0n. This is useful for debug. You can use this one time for every reboot to avoid crashes. Optional.
  
 -x <xpwntool> : allows you to specify xpwntool 's path. Optional.
  
--i <irecovery> : same as -x. Optional.
+-i <irecovery> : same as -x but for iRecovery. Optional.
+ 
+-w <img3file> : Do the work for a IMG3. Skip IPSW.
+
+-g : Launch GreenBSS only. Skip IPSW.
+
+-o <path> : You can choose output directory of files (eg. keys and decrypted files)
  
 -p : Just create a iRecovery's batch script. Useful for learning. Optional.
  
@@ -52,6 +61,7 @@ usage: `basename $0` [-x <xpwntool>] [-i <irecovery>] [-s] [-p] [-n] [-h] [-t] <
 <greenpois0n.app> :  Just drag and drop greenpois0n.app.
  
 <iDevice1,1_1337_Restore.ipsw> : Path to ipsw to decrypt.
+
 USAGE
 }
 kabg() {
@@ -81,8 +91,6 @@ cat << HEAD
 ###############################################
 HEAD
 }
-
-
 ### Main script
 header
 ##### CommandParser
@@ -95,8 +103,13 @@ usage
 exit 2
 fi
 count=0
-
+SINGLE=1
+OUTDIR=1
 if [[ `print $* | grep -o -- "-s"`  == "-s" ]]; then
+cont=1
+elif [[ `print $* | grep -o -- "-w"`  == "-w" ]]; then
+cont=1
+elif [[ `print $* | grep -o -- "-g"`  == "-g" ]]; then
 cont=1
 else
 cont=2
@@ -106,7 +119,10 @@ while [ $# -gt $cont ]; do
 :
 case $1 in
 -i) irecovery="$2"; shift 2; ;; 
--x) xpwntool="$2"; shift 2; ;; 
+-x) xpwntool="$2"; shift 2; ;;  
+-o) ODD="$2"; OUTDIR=; shift 2; ;;  
+-w) SINGLE=;VFD=; swile="$2"; shift 2; ;; 
+-g) SINGLE=;KIGB=; shift ;; 
 -s) GP=1; shift ;; 
 -p) GET=1; shift ;; 
 -n) DECRYPT=1; shift 1 ;; 
@@ -128,9 +144,15 @@ else
 ipsw="$1"
 fi
 tehdir="$PWD"
+if [ $SINGLE ]; then
+if [ $KIGB ]; then
 if [ ! -f "$ipsw" ]; then
 die "IPSW is not valid"
 fi
+fi
+fi
+
+
 
 if [ ! $GP ]; then
 echo "Pois0ning..."
@@ -159,14 +181,18 @@ break
 fi
 active=`ps | grep "$watchPid" | head -1 | grep "greenpois0n"`
 if [[ "$active" == "" ]]; then
-die "greenpois0n crashed/quitted"
 trap ":" EXIT
+die "greenpois0n crashed/quitted"
 fi
 done
 rm -rf pid
 fi
+if [ ! $KIGB ]; then
+info "Done."
+exit
+fi
 
-
+if [ $SINGLE ]; then
 ## Let's extract the plist :P
 echo "Parsing IPSW"
 unzip "$ipsw"  "Restore.plist" &>/dev/null || die "IPSW is not recognized"
@@ -184,12 +210,22 @@ rm -rf Restore.plist
 find . -maxdepth 5 -name "*.img3" -exec mv {} ./ \;
 find . -maxdepth 5 -name "*.dfu" -exec mv {} ./ \;
 rm -rf Firmware
-ls > ../list
-mv ../list ./
+ls > ../lost
+mv ../lost ./
+else
+if [ -f "$swile" ]; then 
+print "$swile" > lost
+else
+die "$swile is not a file"
+fi
+fi
+
 info "Retriving KBAGs"
-for i in $( cat list ); do
+for i in $( cat lost ); do
 		
-		
+		is3gim=`hexdump "$i" | head -1 | tr -d '0000000' | awk '{print $1 $2 $3 $4}' | grep -oi 33676d49`
+		if [ "$is3gim" ]; then
+		print "$i" >> list
         kabg "$i" &>/dev/null
 		if [[ "$kbag" == "" ]]; then
 		read -p "[-] Can't get $i's kbag. Write it here: " kbag
@@ -200,9 +236,16 @@ for i in $( cat list ); do
 		#print $i $kbag
 		print "$gad "$kbag >> bscr
 		print "// $i:" >>names
-		
+
+		fi
 		
 done
+if [ ! -f "bscr" ]; then
+die "Invalid IMG3s"
+fi 
+if [ ! -f "names" ]; then
+die "Invalid IMG3s"
+fi 
 kline=`wc -l < bscr | awk '{print $1}'`
 pline=`wc -l < list | awk '{print $1}'`
 if [[ ! "$kline" == "$pline" ]]; then
@@ -224,16 +267,28 @@ pline=`wc -l < list | awk '{print $1}'`
 if [[ ! "$kline" == "$pline" ]]; then
 die "Error retriving keys/ivs. Maybe you used -s flag too much?"
 fi
-
+if [ $SINGLE ]; then
 print >> out
 print >> out
 print "Keys for $(basename $ipsw):" >> out
 print >> out
 paste -d"\n" names keys >> out
+else
+print "Keys for $(basename $swile):" >> out
+cat keys >> out
+olddir=`dirname "$swile"`
+ipsw="$swile"
+fi
 perl -pi -e 's/-iv/IV:/g' out
 perl -pi -e 's/-k/
 Key:/g'  out
-
+if [ ! $OUTDIR ]; then
+powdd="$PWD"
+cd "$odpw"
+cd "$ODD"
+olddir="$PWD"
+cd "$powdd"
+fi
 ### GENPASS
 if [ $VFD ]; then
 unzip "$ipsw"  "Restore.plist" &>/dev/null
@@ -267,16 +322,15 @@ print >> out
 print "Got them via PwnPie, (c)qwertyoruiop, 2010. follow @0wnTeam on twitter." >>out
 mv out "$olddir/$(basename $ipsw)_keys.txt" 
 if [ ! $DECRYPT ]; then
-pline=`wc -l < list | awk '{print $1}'`
+pline=`wc -l < keys | awk '{print $1}'`
 counter=1
 if [[ -x "$olddir/$(basename $ipsw)_decrypted" ]]; then rm -rf "$olddir/$(basename $ipsw)_decrypted"; fi
 mkdir "$olddir/$(basename $ipsw)_decrypted"
+echo PlOx
 while [[ ! "$pline" == "$counter" ]]
 do
 line2=`sed -n "${counter}p" keys`
 line1=`sed -n "${counter}p" list`
-	if [[ "$line1" == "" ]]; then echo "Fail. Some keys are missing."; break; fi
-if [[ "$line2" == "" ]]; then echo "Fail. Some keys are missing."; break; fi
 	namewoext=`print $line1 | sed 's/(.*)..*/1/'`
 	#echo $namewoext
 	ext=`print $line1 |awk -F . '{print $NF}'`
@@ -301,6 +355,8 @@ fi
 open "$olddir/$(basename $ipsw)_keys.txt"
 fi
 #echo $PWD
+
+##TheiPhoneWiki Module
 if [ $IPHW ]; then
 cat > thiw << EoF
 == Decryption Keys ==
