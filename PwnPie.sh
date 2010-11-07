@@ -186,11 +186,12 @@ die "greenpois0n crashed/quitted"
 fi
 done
 rm -rf pid
-fi
 if [ ! $KIGB ]; then
 info "Done."
 exit
 fi
+fi
+
 
 if [ $SINGLE ]; then
 ## Let's extract the plist :P
