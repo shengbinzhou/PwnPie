@@ -10,22 +10,19 @@ gad="go aes dec"
 
 ## PLISTLib - Defaults for Linux.
 function defaults(){
-touch plut
-shift; #defaults read
-if [[ "$2" == "RestoreKernelCaches" ]]; then ## KERNEL
-cat > plut << OZOD
-#!/usr/bin/env python
+shift
+if [[ "$2" == "KernelCachesByTarget" ]]; then ## KERNEL
+python - "$PWD/Restore.plist" << OZOD
 
 from plistlib import *
 import sys
 pl = readPlist(sys.argv[1])
 ## KernelCache
-print(pl["RestoreKernelCaches"]["Release"])
+print(pl["KernelCachesByTarget"].values()[0]["Release"])
 OZOD
 
 elif [[ "$2" == "DeviceMap" ]]; then ## PLATFORM
-cat > plut << OZOD
-#!/usr/bin/env python
+python - "$PWD/Restore.plist" << OZOD
 
 from plistlib import *
 import sys
@@ -33,9 +30,10 @@ pl = readPlist(sys.argv[1])
 ## KernelCache
 print(pl["DeviceMap"][0]["Platform"])
 OZOD
+
 elif [[ "$2" == "RestoreRamDisks" ]]; then ## RAMDISKS
-cat > plut << OZOD
-#!/usr/bin/env python
+python - "$PWD/Restore.plist" << OZOD
+
 
 from plistlib import *
 import sys
@@ -48,8 +46,7 @@ for lst in ramdisks.values():
 	print(lst)
 OZOD
 elif [[ "$2" == "SystemRestoreImages" ]]; then ## RAMDISKS
-cat > plut << OZOD
-#!/usr/bin/env python
+python - "$PWD/Restore.plist" << OZOD
 
 from plistlib import *
 import sys
@@ -62,11 +59,6 @@ for lst in pl["SystemRestoreImages"].values():
 
 OZOD
 fi
-#platform
-
-chmod +x plut
-./plut "$1.plist" "$2" "$3"
-rm -rf plut
 }
 
 
