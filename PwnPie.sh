@@ -112,7 +112,7 @@ usage: `basename $0` [-x <xpwntool>] [-w <img3-file>] [-i <irecovery>] [-o <path
 
 -k : Skip generation of vfdecrypt key.
  
-<greenpois0n.app> :  Just drag and drop greenpois0n.app.
+<greenpois0n.app> :  Just drag and drop greenpois0n.app (on linux just the binary).
  
 <iDevice1,1_1337_Restore.ipsw> : Path to ipsw to decrypt.
 
@@ -158,6 +158,7 @@ exit 2
 fi
 count=0
 SINGLE=1
+KIGB=1
 OUTDIR=1
 if [[ `print $* | grep -o -- "-s"`  == "-s" ]]; then
 cont=1
@@ -191,8 +192,14 @@ info "Creating workspace"
 if [ ! $GP ]; then
 greenpois0n="$1"
 ipsw="$2"
+if [[ "`uname`" == "Darwin" ]]; then
 if [ ! -d "$greenpois0n" ]; then
 die "greenpois0n is not a valid app"
+fi
+else
+if [ ! -f "$greenpois0n" ]; then
+die "greenpois0n is not a valid app"
+fi
 fi
 else
 ipsw="$1"
@@ -205,19 +212,27 @@ die "IPSW is not valid"
 fi
 fi
 fi
-
-
+if [[ ! "`uname`" == "Darwin" ]]; then
+if [ $VFD ]; then
+print "[-] VFDecrypt on Linux is not supported. Disabling."
+VFD=;
+fi
+fi
 
 if [ ! $GP ]; then
 echo "Pois0ning..."
-trap "killall greenpois0n" EXIT
+trap "killall greenpois0n 2>/dev/null" EXIT
 tamp=`mktemp -t gload`
 loadgp(){
 powd="$PWD"
+if [[ "`uname`" == "Darwin" ]]; then
 cd "$greenpois0n"
 cd Contents
 cd MacOS
 ./greenpois0n &>$tamp &
+else
+"$greenpois0n" &>$tamp &
+fi
 "$echo" "$!" > pid
 cd "$powd"
 mv "$OLDPWD/pid" ./
@@ -235,7 +250,6 @@ break
 fi
 active=`ps | grep "$watchPid" | head -1 | grep "greenpois0n"`
 if [[ "$active" == "" ]]; then
-trap ":" EXIT
 die "greenpois0n crashed/quitted"
 fi
 done
@@ -257,7 +271,7 @@ unzip "$ipsw" "${disk}" &>/dev/null
 done < tmp
 unzip "$ipsw" "Firmware/*" &>/dev/null
 
-unzip "$ipsw" `defaults read "$PWD/Restore" KernelCachesByTarget`
+unzip "$ipsw" `defaults read "$PWD/Restore" KernelCachesByTarget` &>/dev/null
 
 rm -rf tmp
 rm -rf Restore.plist
@@ -368,6 +382,7 @@ info "Extracting RootFS in order to get his vfdecrypt key. This will take some t
 unzip "$ipsw"  "$ROOTFS" &>/dev/null
 KIRL=`./genpass $PLATFORM ./rdisk.dmg $ROOTFS`
 echo "Found VFDecrypt key:" ${KIRL##"vfdecrypt key: "}
+
 VFKEY=${KIRL##"vfdecrypt key: "}
 #cat tmp out > out
 print "//$ROOTFS:" >> out
@@ -375,8 +390,10 @@ print "VFDecrypt Key: $VFKEY" >> out
 fi
 print >> out
 print "Got them via PwnPie, (c)qwertyoruiop, 2010. follow @0wnTeam on twitter." >>out
-mv out "$olddir/$(basename $ipsw)_keys.txt" 
+rm -rf  "$olddir/$(basename $ipsw)_keys.txt" &>/dev/null
+mv out "$olddir/$(basename $ipsw)_keys.txt" &>/dev/null
 if [ ! $DECRYPT ]; then
+info "Decrypting..."
 pline=`wc -l < keys | awk '{print $1}'`
 counter=1
 if [[ -x "$olddir/$(basename $ipsw)_decrypted" ]]; then rm -rf "$olddir/$(basename $ipsw)_decrypted"; fi
@@ -390,7 +407,7 @@ line1=`sed -n "${counter}p" list`
 	ext=`print $line1 |awk -F . '{print $NF}'`
 	newname="$namewoext.dec.$ext"
 	"$xpwntool" "$line1" "$newname" $line2 &>/dev/null
-	mv "$newname" "$olddir/$(basename $ipsw)_decrypted/$newname" &>/dev/null || ( print "[-] Cannot decrypt $line1"; let counter=counter+1; break )
+	mv "$newname" "$olddir/$(basename $ipsw)_decrypted/$newname" &>/dev/null || ( print "[-] Cannot decrypt $line1"; )
 	
 	echo "Decrypted $line1"
 	let counter=counter+1
