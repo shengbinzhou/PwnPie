@@ -274,7 +274,7 @@ kernell=`defaults read "$PWD/Restore" KernelCachesByTarget`
 if [[ "$kernell" == "" ]]; then
 print "[-] Restore.plist is too old. You can't decrypt the kernelcache. Try to do that manually via -w flag."
 else
-unzip "$ipsw" "$kernell" &>/dev/null
+unzip "$ipsw" `defaults read "$PWD/Restore" KernelCachesByTarget` &>/dev/null
 fi
 rm -rf tmp
 rm -rf Restore.plist
@@ -332,7 +332,7 @@ if [[ ! -f "$irecovery" ]]; then die "irecovery not found"; fi
 echo "Retriving keys/ivs"
 "$irecovery" -s log < bscr >/dev/null
 if [[ ! -f log ]]; then die "iDevice not in iBSS mode. Use greenpois0n. kthx."; fi 
-cat log | grep --binary-files=text -i "iv " | tr -d "`printf '\x00`" > keys ## Thanks to http on theiphonewiki for finding this bug.
+cat log | grep --binary-files=text -i "iv " | tr -d "`printf '\x00'`" > keys ## Thanks to http on theiphonewiki for finding this bug.
 kline=`wc -l < keys | awk '{print $1}'`
 pline=`wc -l < list | awk '{print $1}'`
 if [[ ! "$kline" == "$pline" ]]; then
@@ -400,7 +400,7 @@ print "//$ROOTFS:" >> out
 print "VFDecrypt Key: $VFKEY" >> out
 fi
 print >> out
-print "Got them via PwnPie, by qwertyoruiop, 2010. follow @0wnTeam on twitter." >>out
+print "Got them via PwnPie, (c)qwertyoruiop, 2010. follow @0wnTeam on twitter." >>out
 rm -rf  "$olddir/$(basename $ipsw)_keys.txt" &>/dev/null
 mv out "$olddir/$(basename $ipsw)_keys.txt" &>/dev/null
 if [ ! $DECRYPT ]; then
