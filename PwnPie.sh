@@ -438,7 +438,7 @@ echo "Retriving keys/ivs"
 "$irecovery" -s log < bscr >/dev/null
 if [[ ! -f log ]]; then die "iDevice not in iBSS mode. Use greenpois0n. kthx."; fi 
 echo "Got keys. Parsing now."
-cat log | grep --binary-files=text -i "iv " | tr -d '\000'" > keys ## Thanks to http on theiphonewiki for finding this bug.
+cat log | grep --binary-files=text -i "iv " | tr -d "'\000'" > keys ## Thanks to http on theiphonewiki for finding this bug.
 kline=`wc -l < keys | awk '{print $1}'`
 pline=`wc -l < list | awk '{print $1}'`
 if [[ ! "$kline" == "$pline" ]]; then
