@@ -9,7 +9,7 @@ gad="go aes dec"
 olddir="$PWD" #Some Cool Things commit added -o command and now we use $ipsw's dirname as output directory. Override this via -o flag.
 
 
-mammooth(){
+mammooth(){ ## ComingWinter proposed that. use -s -g to trigger.
 cat << FEOF
 
                                                                                       
@@ -437,7 +437,8 @@ if [[ ! -f "$irecovery" ]]; then die "irecovery not found"; fi
 echo "Retriving keys/ivs"
 "$irecovery" -s log < bscr >/dev/null
 if [[ ! -f log ]]; then die "iDevice not in iBSS mode. Use greenpois0n. kthx."; fi 
-cat log | grep --binary-files=text -i "iv " | tr -d "`printf '\x00'`" > keys ## Thanks to http on theiphonewiki for finding this bug.
+echo "Got keys. Parsing now."
+cat log | grep --binary-files=text -i "iv " | tr -d '\000'" > keys ## Thanks to http on theiphonewiki for finding this bug.
 kline=`wc -l < keys | awk '{print $1}'`
 pline=`wc -l < list | awk '{print $1}'`
 if [[ ! "$kline" == "$pline" ]]; then
@@ -505,7 +506,7 @@ print "//$ROOTFS:" >> out
 print "VFDecrypt Key: $VFKEY" >> out
 fi
 print >> out
-print "Got them via PwnPie, (c)qwertyoruiop, 2010. follow @0wnTeam on twitter." >>out
+print "Got them via PwnPie, (cc)qwertyoruiop, 2010. follow @0wnTeam on twitter." >>out
 rm -rf  "$olddir/$(basename $ipsw)_keys.txt" &>/dev/null
 mv out "$olddir/$(basename $ipsw)_keys.txt" &>/dev/null
 if [ ! $DECRYPT ]; then
