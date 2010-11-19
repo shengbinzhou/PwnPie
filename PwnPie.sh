@@ -220,22 +220,47 @@ usage: `basename $0` [-x <xpwntool>] [-w <img3-file>] [-i <irecovery>] [-o <path
 USAGE
 }
 kabg() {
-file=$1;
-## qwertyoruiop's kbag extractor
-startParsing=`hexdump "$file" | grep -i "47 41 42 4B" | cut -d \  -f 1 | head -1`
-kbag=`dd if="$file" bs=1 skip=0x"$startParsing" count=0x70 | hexdump -v -e '""1/1 "%02X""\n"' | grep -A 70 -i "47" | tr -d '\n'`
-kbagstart="${kbag: +40}"
-aestype="${kbag: +32}"
-aestype=`print "$aestype" | dd bs=1 count=8`
+file="$1";
+## qwertyoruiop's kbag extractor rev2
 
-if [[ $aestype == "00010000" ]]; then
-print "KBAG is for a device newer than S5L8920"
-skip=$[0x60]
-else
-print "KBAG is for a device older than S5L8920"
-skip=$[0x40]
-fi
-kbag=`print "$kbagstart" | dd bs=1 count=$skip`
+kbag=`python - "$file" << END
+import sys, binascii
+from struct import *
+
+try:
+	f = open(sys.argv[1], "rb") 
+except:
+	sys.exit(-1)
+data = f.read()
+f.close()
+if data[0:4] != "3gmI":
+	sys.exit(1)
+		
+	
+pointer=data.find("GABK")
+tag=data[pointer:]
+magic=tag[0:4]
+tagFullSize=tag[4:8]
+tagDataSize=tag[8:12]
+cryptState=tag[12:16]
+aesType=tag[16:20]
+iv=tag[20:36]
+ktypehex=binascii.b2a_hex(pack('<I', int(binascii.b2a_hex(aesType), 16)))
+ktype=int(ktypehex, 16)
+if ktype == 256:
+	kSize=32
+elif ktype == 192:
+	kSize=24
+elif ktype == 128:
+	kSize=16
+else:
+	sys.exit(1)
+key=tag[36:36+kSize]
+keyHex=binascii.b2a_hex(key).upper()
+ivHex=binascii.b2a_hex(iv).upper()
+sys.stdout.write(ivHex+keyHex)
+END`
+
 }
 header(){
 cat << HEAD
@@ -402,7 +427,7 @@ for i in $( cat lost ); do
 		is3gim=`hexdump "$i" | head -1 | tr -d '0000000' | awk '{print $1 $2 $3 $4}' | grep -oi 33676d49`
 		if [ "$is3gim" ]; then
 		print "$i" >> list
-        kabg "$i" &>/dev/null
+        kabg "$i"
 		if [[ "$kbag" == "" ]]; then
 		read -p "[-] Can't get $i's kbag. Write it here: " kbag
 		fi
@@ -430,6 +455,7 @@ fi
 print "/exit" >> bscr
 if [ $GET ]; then
 cp bscr "$olddir/getkeys.txt" 
+exit 1
 fi
 if [ ! $GET ]; then
 if [[ ! -f "$xpwntool" ]]; then die "xpwntool not found"; fi
