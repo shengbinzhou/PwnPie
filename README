@@ -1,2 +1,24 @@
-do i need to write here? 
-usage is in the app, license too.
+###############################################
+##     PwnPie - IMG3 Parser and Decrypter    ##
+#######     by 0wnDev - qwertyoruiop	#######
+#######      modified by liamchat       #######
+### Licensed under CC BY-NC-SA 3.0 Unported ###
+###############################################
+
+this is pwnpie it will not work on 2.x firmware but can work on 4.2 firmware.
+
+-s : Skip greenpois0n. This is useful for debug. You can use this one time for every reboot to avoid crashes. Optional.
+-w : uploads the AES payload so it will work on any iBSS based jailbreask. Optional.
+-f : patch iboot to jump to aes_decrypt. Optional.
+-x <xpwntool> : allows you to specify xpwntool 's path. Optional.
+-i <irecovery> : same as -x but for iRecovery. Optional.
+-w <img3file> : Do the work for a IMG3. Skip IPSW.
+-g : Launch GreenBSS only. Skip IPSW.
+-o <path> : You can choose output directory of files (eg. keys and decrypted files)
+-p : Just create a iRecovery's batch script. Useful for learning. Optional.
+-n : Do not decrypt files in your iPSW. More faster. Useful if you want to get only keys. Optional.
+-h : Print this message. Optional.
+-t : Create a theiphonewiki template.
+-k : Skip generation of vfdecrypt key.
+<greenpois0n.app> :  Just drag and drop greenpois0n.app (on linux just the binary).
+<iDevice1,1_1337_Restore.ipsw> : Path to ipsw to decrypt.
