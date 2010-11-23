@@ -2,7 +2,7 @@
 ###############################################
 ##     PwnPie - IMG3 Parser and Decrypter    ##
 #######     by 0wnDev - qwertyoruiop	#######
-#######      modifiyed by liamchat      #######
+#######      modified by liamchat       #######
 ### Licensed under CC BY-NC-SA 3.0 Unported ###
 ###############################################
 gad="go aes dec"
@@ -231,7 +231,7 @@ cat << HEAD
 ###############################################
 ##     PwnPie - IMG3 Parser and Decrypter    ##
 #######     by 0wnDev - qwertyoruiop	#######
-#######      modifiyed by liamchat      #######
+#######      modified by liamchat       #######
 ### Licensed under CC BY-NC-SA 3.0 Unported ###
 ###############################################
 HEAD
