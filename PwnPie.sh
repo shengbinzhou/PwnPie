@@ -556,10 +556,10 @@ fi
 ##TheiPhoneWiki Module
 if [ $IPHW ]; then
 cat > thiw << EoF
-==Decryption Keys==
-===Root Filesystem ($ROOTFS)===
-*'''[[VFDecrypt]] Key''': $VFKEY
-EoF # this is done the top of thiw work's with the template
+== Decryption Keys ==
+=== Root Filesystem ($ROOTFS)===
+*'''[[VFDecrypt Keys|VFDecrypt]] Key''': $VFKEY
+EoF
 pline=`wc -l < list | awk '{print $1}'`
 counter=1
 while [[ ! "$pline" == "$counter" ]]
@@ -568,24 +568,24 @@ line2=`sed -n "${counter}p" bscr`
 line3=`sed -n "${counter}p" keys`
 line1=`sed -n "${counter}p" list`
 print >> thiw
+print "=== $line1 ===" >> thiw
 print "$line2">key
 print "$line3">crap
-read list < thiw # read the list will try to make it add recovery mode from it
-read bscr go aes dec < key # read the kbag's
-read crap iv crapp key < crap # read the iv key's
+read bscr go aes dec < key
+read crap iv crapp key < crap
 cat >> thiw << oEfP
-===$line1===
 * '''IV''': $iv
 * '''Key''': $key
 oEfP
+
 	let counter=counter+1
 done
 cat >> thiw << oEfP
 
-===[[Recovery Mode]]===
+=== RecoveryMode ===
 * '''IV''': 
 * '''Key''': 
-oEfP # because recovey mode is not added i have to add it my selph
+oEfP
 info "this template is not ready for the iphone wiki please see http://theiphonewiki.com/wiki/index.php?title=Template:Keys until i can get it to work here" # just to warn you
 info "update ramdisk is the smaller number" # just to help me remember what is the update ramdisk
 echo "the keys have being add to a generic template to help you add them to the wiki" # this will help you add them to the wiki
